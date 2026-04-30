@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Vulnerability Dashboard</title>
+<style>
+  :root{
+    --bg:#070b13;
+    --bg2:#0d1422;
+    --panel:rgba(255,255,255,.04);
+    --panel-bd:rgba(255,255,255,.08);
+    --text:#e6edf7;
+    --muted:#7a8aa3;
+    --crit:#ff3860;
+    --high:#ff8a3d;
+    --med:#f0c419;
+    --low:#3ec1d3;
+    --info:#5a8dee;
+    --accent:#7c5cff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;min-height:100%}
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(255,56,96,.14), transparent 60%),
+      radial-gradient(800px 600px at 50% 120%, rgba(62,193,211,.10), transparent 60%),
+      var(--bg);
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:48px 48px;
+    mask-image:radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
+  }
+  header{
+    position:relative;z-index:1;
+    padding:28px 40px 8px;display:flex;justify-content:space-between;align-items:center;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:40px;height:40px;border-radius:10px;
+    background:conic-gradient(from 220deg,var(--crit),var(--accent),var(--low),var(--crit));
+    box-shadow:0 0 30px rgba(124,92,255,.5),inset 0 0 12px rgba(0,0,0,.4);
+    position:relative;
+  }
+  .logo::after{
+    content:"";position:absolute;inset:6px;border-radius:6px;background:var(--bg2);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .logo::before{
+    content:"";position:absolute;inset:13px;border-radius:3px;
+    background:linear-gradient(135deg,var(--crit),var(--accent));
+    z-index:1;
+  }
+  h1{margin:0;font-size:20px;letter-spacing:.5px;font-weight:700}
+  .sub{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+  .meta{display:flex;gap:24px;align-items:center;color:var(--muted);font-size:12px}
+  .meta .live{display:flex;align-items:center;gap:8px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#23d18b;box-shadow:0 0 12px #23d18b;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+
+  main{position:relative;z-index:1;padding:24px 40px 60px;max-width:1500px;margin:0 auto}
+
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-bottom:24px}
+  .stat{
+    position:relative;padding:22px 22px 20px;border-radius:14px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+    border:1px solid var(--panel-bd);
+    backdrop-filter:blur(12px);
+    overflow:hidden;
+    transition:transform .25s ease, box-shadow .25s ease;
+  }
+  .stat:hover{transform:translateY(-3px)}
+  .stat .label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+  .stat .num{font-size:42px;font-weight:800;margin-top:6px;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+  .stat .bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:rgba(255,255,255,.06)}
+  .stat .bar > span{display:block;height:100%;width:0;transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+  .stat.crit .num{color:var(--crit)} .stat.crit .bar > span{background:var(--crit);box-shadow:0 0 16px var(--crit)}
+  .stat.high .num{color:var(--high)} .stat.high .bar > span{background:var(--high);box-shadow:0 0 16px var(--high)}
+  .stat.med  .num{color:var(--med)}  .stat.med  .bar > span{background:var(--med);box-shadow:0 0 16px var(--med)}
+  .stat.low  .num{color:var(--low)}  .stat.low  .bar > span{background:var(--low);box-shadow:0 0 16px var(--low)}
+  .stat.info .num{color:var(--info)} .stat.info .bar > span{background:var(--info);box-shadow:0 0 16px var(--info)}
+  .stat .glow{position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;filter:blur(40px);opacity:.35}
+  .stat.crit .glow{background:var(--crit)}
+  .stat.high .glow{background:var(--high)}
+  .stat.med  .glow{background:var(--med)}
+  .stat.low  .glow{background:var(--low)}
+  .stat.info .glow{background:var(--info)}
+
+  .grid{display:grid;grid-template-columns:1.1fr 1.4fr;gap:18px;margin-bottom:24px}
+  .panel{
+    border-radius:14px;padding:22px;
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.01));
+    border:1px solid var(--panel-bd);
+    backdrop-filter:blur(12px);
+  }
+  .panel h2{margin:0 0 16px;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+  .donut-wrap{display:flex;align-items:center;gap:28px}
+  .donut{
+    --p:0;
+    width:200px;height:200px;border-radius:50%;
+    position:relative;flex-shrink:0;
+    background:conic-gradient(var(--bg2) 0,var(--bg2) 360deg);
+    transition:background 1.4s ease;
+  }
+  .donut::after{
+    content:"";position:absolute;inset:18px;border-radius:50%;background:var(--bg2);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .donut .center{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1;
+  }
+  .donut .center .total{font-size:38px;font-weight:800;letter-spacing:-1px}
+  .donut .center .label{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+  .legend{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+  .legend .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+  .legend .row:last-child,.legend .row:nth-last-child(2){border-bottom:0}
+  .legend .name{display:flex;align-items:center;gap:10px;font-size:13px}
+  .legend .swatch{width:10px;height:10px;border-radius:2px}
+  .legend .val{font-weight:700;font-variant-numeric:tabular-nums}
+
+  .scans{display:flex;flex-direction:column;gap:10px}
+  .scan{
+    display:grid;grid-template-columns:1fr 90px;gap:14px;align-items:center;
+    padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.025);
+    border:1px solid var(--panel-bd);
+  }
+  .scan .name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .scan .meta-line{font-size:11px;color:var(--muted);margin-top:2px}
+  .scan .stack{display:flex;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.04);margin-top:8px}
+  .scan .stack > span{height:100%;transition:width 1.4s cubic-bezier(.2,.8,.2,1);width:0}
+  .scan .total{text-align:right;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  table{width:100%;border-collapse:collapse;margin-top:6px}
+  th,td{text-align:left;padding:10px 12px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.05)}
+  th{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:1px solid rgba(255,255,255,.1)}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .pill{
+    display:inline-block;padding:3px 10px;border-radius:999px;font-size:10px;
+    letter-spacing:1.5px;text-transform:uppercase;font-weight:700;
+  }
+  .pill.Critical{background:rgba(255,56,96,.15);color:var(--crit);box-shadow:inset 0 0 0 1px rgba(255,56,96,.4)}
+  .pill.High{background:rgba(255,138,61,.15);color:var(--high);box-shadow:inset 0 0 0 1px rgba(255,138,61,.4)}
+  .pill.Medium{background:rgba(240,196,25,.13);color:var(--med);box-shadow:inset 0 0 0 1px rgba(240,196,25,.4)}
+  .pill.Low{background:rgba(62,193,211,.13);color:var(--low);box-shadow:inset 0 0 0 1px rgba(62,193,211,.4)}
+  .pill.Info{background:rgba(90,141,238,.13);color:var(--info);box-shadow:inset 0 0 0 1px rgba(90,141,238,.4)}
+  .num-cell{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  a.plugin{color:var(--accent);text-decoration:none}
+  a.plugin:hover{text-decoration:underline}
+
+  .toolbar{display:flex;gap:10px;margin:10px 0 14px;flex-wrap:wrap}
+  .chip{
+    cursor:pointer;user-select:none;padding:6px 12px;border-radius:999px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;
+    background:rgba(255,255,255,.04);color:var(--muted);border:1px solid var(--panel-bd);transition:all .2s
+  }
+  .chip:hover{color:var(--text)}
+  .chip.active{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 0 18px rgba(124,92,255,.5)}
+  .chip.active.Critical{background:var(--crit);box-shadow:0 0 18px rgba(255,56,96,.5)}
+  .chip.active.High{background:var(--high);box-shadow:0 0 18px rgba(255,138,61,.5)}
+  .chip.active.Medium{background:var(--med);color:#1a1a1a;box-shadow:0 0 18px rgba(240,196,25,.5)}
+  .chip.active.Low{background:var(--low);color:#0b1620;box-shadow:0 0 18px rgba(62,193,211,.5)}
+  .chip.active.Info{background:var(--info);box-shadow:0 0 18px rgba(90,141,238,.5)}
+
+  .empty{padding:40px;text-align:center;color:var(--muted);font-size:13px}
+  .footer{margin-top:30px;padding:18px 40px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:1px}
+
+  @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo"></div>
+    <div>
+      <h1>SENTRY · Vulnerability Dashboard</h1>
+      <div class="sub">External Scan Aggregator</div>
+    </div>
+  </div>
+  <div class="meta">
+    <div id="scanInfo">Loading scans...</div>
+    <div class="live"><span class="dot"></span> LIVE</div>
+  </div>
+</header>
+
+<main>
+  <section class="stats" id="stats"></section>
+
+  <section class="grid">
+    <div class="panel">
+      <h2>Severity Distribution</h2>
+      <div class="donut-wrap">
+        <div class="donut" id="donut"><div class="center"><div class="total" id="donutTotal">0</div><div class="label">Findings</div></div></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Scans</h2>
+      <div class="scans" id="scans"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Findings</h2>
+    <div class="toolbar" id="filters"></div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:90px">Severity</th>
+          <th style="width:90px">Plugin ID</th>
+          <th>Plugin Name</th>
+          <th style="width:160px">Source</th>
+          <th class="num-cell" style="width:80px">Hosts</th>
+        </tr>
+      </thead>
+      <tbody id="findings"></tbody>
+    </table>
+    <div id="emptyMsg" class="empty" style="display:none">No findings match the current filter.</div>
+  </section>
+</main>
+
+<div class="footer">Sentry Dashboard · Aggregated from Tenable / ACAS exports</div>
+
+<script>
+const SCAN_FILES = [
+  "GMI External Scan_ IPs_oawxbt.html",
+  "Valor Global External Scan_ IPs_rxs35q.html",
+  "Valor Global External Scan_ IPs_ygirv4.html"
+];
+
+const SEV_ORDER = ["Critical","High","Medium","Low","Info"];
+const SEV_COLOR = {
+  Critical:"var(--crit)", High:"var(--high)", Medium:"var(--med)",
+  Low:"var(--low)", Info:"var(--info)"
+};
+const COLOR_TO_SEV = {
+  "#DD4B50":"Critical", "#dd4b50":"Critical",
+  "#F1663C":"High", "#f1663c":"High",
+  "#F18C43":"Medium", "#f18c43":"Medium",
+  "#F8C851":"Low", "#f8c851":"Low",
+  "#67ACE1":"Info", "#67ace1":"Info"
+};
+
+async function loadScan(file){
+  const res = await fetch(file);
+  const text = await res.text();
+  const doc = new DOMParser().parseFromString(text, "text/html");
+  const rows = doc.querySelectorAll("tr.plugin-row");
+  const findings = [];
+  rows.forEach(r => {
+    const sevSpan = r.querySelector("span[style*='background']");
+    let severity = sevSpan ? sevSpan.textContent.trim() : "";
+    if(!SEV_ORDER.includes(severity)){
+      const m = sevSpan && sevSpan.getAttribute("style").match(/background:\s*(#[0-9a-fA-F]{6})/);
+      if(m) severity = COLOR_TO_SEV[m[1]] || "Info";
+    }
+    const tds = r.querySelectorAll("td");
+    const link = r.querySelector("a");
+    const pluginId = link ? link.textContent.trim() : "";
+    const pluginUrl = link ? link.getAttribute("href") : "#";
+    let name = "", count = "1";
+    const nonEmpty = Array.from(tds).map(t => t.textContent.trim()).filter(Boolean);
+    if(nonEmpty.length >= 4){
+      name = nonEmpty[2];
+      count = nonEmpty[3];
+    }
+    if(!severity || !pluginId) return;
+    findings.push({
+      severity, pluginId, pluginUrl, name,
+      count: parseInt(count,10) || 1,
+      source: file.replace(/_[a-z0-9]+\.html$/i, "").replace(/_/g," ").trim()
+    });
+  });
+  return { file, findings };
+}
+
+function animateNum(el, target, dur=1200){
+  const start = performance.now();
+  const from = 0;
+  function tick(t){
+    const p = Math.min(1, (t-start)/dur);
+    const eased = 1 - Math.pow(1-p, 3);
+    el.textContent = Math.round(from + (target-from)*eased).toLocaleString();
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function renderStats(counts){
+  const max = Math.max(1, ...Object.values(counts));
+  const html = SEV_ORDER.map(sev => `
+    <div class="stat ${sev.toLowerCase().slice(0,4)}">
+      <div class="glow"></div>
+      <div class="label">${sev}</div>
+      <div class="num" data-target="${counts[sev]||0}">0</div>
+      <div class="bar"><span data-pct="${((counts[sev]||0)/max*100).toFixed(1)}"></span></div>
+    </div>`).join("");
+  document.getElementById("stats").innerHTML = html;
+  document.querySelectorAll(".stat .num").forEach(el => animateNum(el, +el.dataset.target));
+  setTimeout(()=>document.querySelectorAll(".stat .bar > span").forEach(s=>s.style.width=s.dataset.pct+"%"),50);
+}
+
+function renderDonut(counts){
+  const total = SEV_ORDER.reduce((a,s)=>a+(counts[s]||0),0);
+  const colors = {Critical:"#ff3860",High:"#ff8a3d",Medium:"#f0c419",Low:"#3ec1d3",Info:"#5a8dee"};
+  let acc = 0;
+  const segs = SEV_ORDER.map(sev => {
+    const v = counts[sev]||0;
+    if(!v) return null;
+    const start = (acc/total)*360;
+    acc += v;
+    const end = (acc/total)*360;
+    return `${colors[sev]} ${start}deg ${end}deg`;
+  }).filter(Boolean).join(",");
+  const donut = document.getElementById("donut");
+  donut.style.background = total ? `conic-gradient(${segs})` : "var(--bg2)";
+  animateNum(document.getElementById("donutTotal"), total);
+
+  document.getElementById("legend").innerHTML = SEV_ORDER.map(sev => {
+    const v = counts[sev]||0;
+    const pct = total ? ((v/total)*100).toFixed(1) : "0.0";
+    return `<div class="row"><div class="name"><span class="swatch" style="background:${colors[sev]}"></span>${sev}</div><div class="val">${v} <span style="color:var(--muted);font-weight:500;font-size:11px">(${pct}%)</span></div></div>`;
+  }).join("");
+}
+
+function renderScans(scans){
+  const colors = {Critical:"#ff3860",High:"#ff8a3d",Medium:"#f0c419",Low:"#3ec1d3",Info:"#5a8dee"};
+  document.getElementById("scans").innerHTML = scans.map(s => {
+    const total = s.findings.reduce((a,f)=>a+f.count,0);
+    const counts = {};
+    SEV_ORDER.forEach(x=>counts[x]=0);
+    s.findings.forEach(f => counts[f.severity] = (counts[f.severity]||0) + f.count);
+    const stacks = SEV_ORDER.map(sev => {
+      const v = counts[sev]||0;
+      if(!v||!total) return "";
+      return `<span style="background:${colors[sev]};width:${(v/total*100).toFixed(2)}%"></span>`;
+    }).join("");
+    const niceName = s.file.replace(/\.html$/,"").replace(/_[a-z0-9]+$/i,"").replace(/_/g," ");
+    return `
+      <div class="scan">
+        <div>
+          <div class="name">${niceName}</div>
+          <div class="meta-line">${s.findings.length} unique findings · ${total} affected hosts</div>
+          <div class="stack">${stacks}</div>
+        </div>
+        <div class="total">${total}</div>
+      </div>`;
+  }).join("");
+  setTimeout(()=>{
+    document.querySelectorAll(".scan .stack > span").forEach(el=>{
+      const w = el.style.width; el.style.width="0"; requestAnimationFrame(()=>el.style.width=w);
+    });
+  },50);
+}
+
+let allFindings = [];
+let activeFilter = "All";
+
+function renderFindings(){
+  const tbody = document.getElementById("findings");
+  const list = activeFilter==="All" ? allFindings : allFindings.filter(f=>f.severity===activeFilter);
+  list.sort((a,b)=>{
+    const d = SEV_ORDER.indexOf(a.severity)-SEV_ORDER.indexOf(b.severity);
+    if(d) return d;
+    return b.count - a.count;
+  });
+  document.getElementById("emptyMsg").style.display = list.length ? "none" : "block";
+  tbody.innerHTML = list.map(f => `
+    <tr>
+      <td><span class="pill ${f.severity}">${f.severity}</span></td>
+      <td><a class="plugin" href="${f.pluginUrl}" target="_blank" rel="noopener">${f.pluginId}</a></td>
+      <td>${f.name}</td>
+      <td style="color:var(--muted);font-size:12px">${f.source}</td>
+      <td class="num-cell">${f.count}</td>
+    </tr>`).join("");
+}
+
+function renderFilters(counts){
+  const totalAll = SEV_ORDER.reduce((a,s)=>a+(counts[s]||0),0);
+  const chips = [["All",totalAll], ...SEV_ORDER.map(s=>[s,counts[s]||0])];
+  document.getElementById("filters").innerHTML = chips.map(([k,v])=>`
+    <div class="chip ${k===activeFilter?"active":""} ${k}" data-key="${k}">${k} · ${v}</div>
+  `).join("");
+  document.querySelectorAll(".chip").forEach(c=>{
+    c.addEventListener("click",()=>{
+      activeFilter = c.dataset.key;
+      renderFilters(counts);
+      renderFindings();
+    });
+  });
+}
+
+(async () => {
+  try{
+    const scans = await Promise.all(SCAN_FILES.map(loadScan));
+    allFindings = scans.flatMap(s=>s.findings);
+    const counts = {};
+    SEV_ORDER.forEach(s=>counts[s]=0);
+    allFindings.forEach(f => counts[f.severity] = (counts[f.severity]||0) + f.count);
+
+    document.getElementById("scanInfo").textContent =
+      `${scans.length} scans · ${allFindings.length} unique findings · ${Object.values(counts).reduce((a,b)=>a+b,0)} affected hosts`;
+
+    renderStats(counts);
+    renderDonut(counts);
+    renderScans(scans);
+    renderFilters(counts);
+    renderFindings();
+  }catch(e){
+    document.getElementById("scanInfo").textContent = "Failed to load scans (serve over HTTP)";
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
