@@ -4,8 +4,8 @@ Pull every historical run of every GMI-named scan from a Nessus/Tenable host
 and save each as HTML into ./scans/gmi/.
 
 Usage:
-    export TENABLE_ACCESS_KEY=...    # NEVER hardcode
-    export TENABLE_SECRET_KEY=...
+    export TENABLE_ACCESS_KEY=67bea29073c78c0f6c079c784f21f751a1a2853df0bd37d9e7f4cef14cd3241f
+    export TENABLE_SECRET_KEY=5db26c90981195d73ec680c20df3cd684e3c8d7a301464360569092c2b53a57c
     export TENABLE_URL=https://137.184.89.60:8834
     python3 scripts/pull_gmi_scans.py [--match GMI] [--insecure]
 """
