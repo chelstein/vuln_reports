@@ -170,7 +170,66 @@
   .empty{padding:40px;text-align:center;color:var(--muted);font-size:13px}
   .footer{margin-top:30px;padding:18px 40px;color:var(--muted);font-size:11px;text-align:center;letter-spacing:1px}
 
-  @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+  .host-row{cursor:pointer;transition:border-color .15s, background .15s}
+  .host-row:hover{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.04)}
+  .host-row.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 18px rgba(124,92,255,.4)}
+
+  .search-wrap{position:relative;margin:6px 0 12px;max-width:420px}
+  .search-wrap input{
+    width:100%;padding:10px 12px 10px 36px;border-radius:10px;font-size:13px;
+    background:rgba(255,255,255,.04);border:1px solid var(--panel-bd);color:var(--text);
+    outline:none;transition:border-color .15s, box-shadow .15s;
+  }
+  .search-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,255,.15)}
+  .search-wrap::before{
+    content:"";position:absolute;left:12px;top:50%;width:14px;height:14px;
+    transform:translateY(-50%);border:2px solid var(--muted);border-radius:50%;
+  }
+  .search-wrap::after{
+    content:"";position:absolute;left:23px;top:24px;width:7px;height:2px;background:var(--muted);
+    transform:rotate(45deg);transform-origin:left center;
+  }
+
+  tr.finding{cursor:pointer}
+  tr.finding:hover td{background:rgba(255,255,255,.035)}
+  tr.finding.open td{background:rgba(124,92,255,.06)}
+  .name-cell .syn{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4;font-weight:400}
+  .caret{margin-left:8px;color:var(--muted);font-size:11px}
+  tr.detail-row > td{padding:0 !important;background:rgba(0,0,0,.18)}
+  .detail{padding:18px 22px;border-top:1px solid rgba(124,92,255,.25);border-bottom:1px solid rgba(124,92,255,.15)}
+  .detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:24px}
+  .detail-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;font-weight:700}
+  .detail-label:first-child{margin-top:0}
+  .detail-label.fix{color:var(--low)}
+  .detail-text{font-size:13px;line-height:1.55;color:var(--text);white-space:pre-wrap}
+  .detail-text.fix{
+    background:linear-gradient(180deg,rgba(62,193,211,.06),rgba(62,193,211,.02));
+    border-left:3px solid var(--low);padding:10px 12px;border-radius:0 6px 6px 0;
+  }
+  .metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:6px}
+  .metrics > div{
+    display:flex;justify-content:space-between;padding:8px 10px;border-radius:8px;
+    background:rgba(255,255,255,.03);border:1px solid var(--panel-bd);font-size:12px;
+  }
+  .metrics span{color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-size:10px}
+  .metrics b{font-variant-numeric:tabular-nums;font-size:13px}
+  .hosts{max-height:340px;overflow:auto;padding-right:6px}
+  .host-block{margin-bottom:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.025);border:1px solid var(--panel-bd)}
+  .host-head{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;font-variant-numeric:tabular-nums}
+  .instance{margin-top:4px}
+  .port{display:inline-block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);background:rgba(124,92,255,.1);padding:2px 7px;border-radius:4px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .output{
+    margin:6px 0 0;padding:10px;border-radius:6px;background:rgba(0,0,0,.35);
+    font-family:'JetBrains Mono','Fira Code',Consolas,monospace;font-size:11px;line-height:1.5;
+    color:#cdd6e0;white-space:pre-wrap;overflow-x:auto;max-height:200px;overflow-y:auto;
+    border:1px solid rgba(255,255,255,.04);
+  }
+  .muted{color:var(--muted)}
+  .filter-banner{padding:10px 12px;background:rgba(124,92,255,.08);font-size:12px;color:var(--text);border-bottom:1px solid var(--panel-bd)}
+  .filter-banner a{color:var(--accent);text-decoration:none}
+  .filter-banner a:hover{text-decoration:underline}
+
+  @media (max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -179,8 +238,8 @@
   <div class="brand">
     <div class="logo"></div>
     <div>
-      <h1>SENTRY · Vulnerability Dashboard</h1>
-      <div class="sub">External Scan Aggregator</div>
+      <h1>SENTRY · GMI Vulnerability Dashboard</h1>
+      <div class="sub">External Scan · Remediation View</div>
     </div>
   </div>
   <div class="meta">
@@ -202,13 +261,14 @@
     </div>
 
     <div class="panel">
-      <h2>Scans</h2>
+      <h2>Top Affected Hosts</h2>
       <div class="scans" id="scans"></div>
     </div>
   </section>
 
   <section class="panel">
-    <h2>Findings</h2>
+    <h2>Findings · click a row for full remediation details</h2>
+    <div class="search-wrap"><input id="search" type="search" placeholder="Search plugin, name, synopsis, solution…" /></div>
     <div class="toolbar" id="filters"></div>
     <table>
       <thead>
@@ -216,8 +276,8 @@
           <th style="width:90px">Severity</th>
           <th style="width:90px">Plugin ID</th>
           <th>Plugin Name</th>
-          <th style="width:160px">Source</th>
-          <th class="num-cell" style="width:80px">Hosts</th>
+          <th style="width:200px">Hosts</th>
+          <th class="num-cell" style="width:90px">Count</th>
         </tr>
       </thead>
       <tbody id="findings"></tbody>
@@ -226,58 +286,133 @@
   </section>
 </main>
 
-<div class="footer">Sentry Dashboard · Aggregated from Tenable / ACAS exports</div>
+<div class="footer">Sentry Dashboard · GMI External Scan · Sourced from Tenable Nessus detail report</div>
 
 <script>
-const SCAN_FILES = [
-  "GMI External Scan_ IPs_oawxbt.html",
-  "Valor Global External Scan_ IPs_rxs35q.html"
-];
+const DETAIL_FILE = "GMI External Scan_ IPs_qgve4c.html";
 
 const SEV_ORDER = ["Critical","High","Medium","Low","Info"];
-const SEV_COLOR = {
-  Critical:"var(--crit)", High:"var(--high)", Medium:"var(--med)",
-  Low:"var(--low)", Info:"var(--info)"
-};
+const SEV_RANK = {Critical:0,High:1,Medium:2,Low:3,Info:4,None:4};
 const COLOR_TO_SEV = {
-  "#DD4B50":"Critical", "#dd4b50":"Critical",
-  "#F1663C":"High", "#f1663c":"High",
-  "#F18C43":"Medium", "#f18c43":"Medium",
-  "#F8C851":"Low", "#f8c851":"Low",
-  "#67ACE1":"Info", "#67ace1":"Info"
+  "#dd4b50":"Critical",
+  "#f1663c":"High",
+  "#f18c43":"Medium",
+  "#f8c851":"Low",
+  "#67ace1":"Info"
 };
 
-async function loadScan(file){
+function textOf(el){ return el ? (el.textContent || "").replace(/\s+/g," ").trim() : ""; }
+
+async function loadDetail(file){
   const res = await fetch(file);
+  if(!res.ok) throw new Error("HTTP "+res.status+" for "+file);
   const text = await res.text();
   const doc = new DOMParser().parseFromString(text, "text/html");
-  const rows = doc.querySelectorAll("tr.plugin-row");
-  const findings = [];
-  rows.forEach(r => {
-    const sevSpan = r.querySelector("span[style*='background']");
-    let severity = sevSpan ? sevSpan.textContent.trim() : "";
-    if(!SEV_ORDER.includes(severity)){
-      const m = sevSpan && sevSpan.getAttribute("style").match(/background:\s*(#[0-9a-fA-F]{6})/);
-      if(m) severity = COLOR_TO_SEV[m[1]] || "Info";
+
+  // Walk the document body, tracking the current host as we encounter host
+  // headers. Each host header is a <div id="idN"> with font-size:22px whose
+  // text content is an IP address. Each plugin section is a
+  // <div id="idM-container" class="section-wrapper">.
+  const ipRe = /^(\d{1,3}\.){3}\d{1,3}$/;
+  const allIdDivs = doc.querySelectorAll('div[id^="id"]');
+  const hostByContainerId = {};
+  let currentHost = null;
+  for(const d of allIdDivs){
+    const txt = textOf(d);
+    if(ipRe.test(txt) && /font-size:\s*22px/i.test(d.getAttribute("style")||"")){
+      currentHost = txt;
+      continue;
     }
-    const tds = r.querySelectorAll("td");
-    const link = r.querySelector("a");
-    const pluginId = link ? link.textContent.trim() : "";
-    const pluginUrl = link ? link.getAttribute("href") : "#";
-    let name = "", count = "1";
-    const nonEmpty = Array.from(tds).map(t => t.textContent.trim()).filter(Boolean);
-    if(nonEmpty.length >= 4){
-      name = nonEmpty[2];
-      count = nonEmpty[3];
+    if(d.id.endsWith("-container") && d.classList.contains("section-wrapper")){
+      hostByContainerId[d.id] = currentHost;
     }
-    if(!severity || !pluginId) return;
-    findings.push({
-      severity, pluginId, pluginUrl, name,
-      count: parseInt(count,10) || 1,
-      source: file.replace(/_[a-z0-9]+\.html$/i, "").replace(/_/g," ").trim()
+  }
+
+  const plugins = {}; // pluginId -> aggregated record
+  const containers = doc.querySelectorAll('div.section-wrapper[id$="-container"]');
+  containers.forEach(container => {
+    const containerId = container.id;
+    const headerSel = `[onclick*="toggleSection('${containerId}')"]`;
+    const header = doc.querySelector(headerSel);
+    if(!header) return;
+    const headerText = textOf(header).replace(/[+\-]\s*$/,"").trim();
+    const m = headerText.match(/^(\d+)\s*-\s*(.+)$/);
+    if(!m) return;
+    const pluginId = m[1];
+    const pluginName = m[2].trim();
+    const bgMatch = (header.getAttribute("style")||"").match(/background:\s*(#[0-9a-fA-F]{6})/);
+    const severity = bgMatch ? (COLOR_TO_SEV[bgMatch[1].toLowerCase()] || "Info") : "Info";
+
+    const details = {};
+    container.querySelectorAll(".details-header").forEach(h => {
+      const label = (h.firstChild?.nodeValue || "").trim();
+      let val = h.nextElementSibling;
+      if(val && val.tagName === "DIV"){
+        details[label] = val.textContent.replace(/\s+\n/g,"\n").replace(/[ \t]+/g," ").trim();
+      }
     });
+
+    // Plugin Output: an <h2> with port/proto, followed (after one or more
+    // <div class="clear"> spacers) by a div with the monospace output.
+    let port = "", output = "";
+    const h2 = container.querySelector("h2");
+    if(h2){
+      port = textOf(h2);
+      let sib = h2.nextElementSibling;
+      while(sib && sib.tagName === "DIV" && sib.classList.contains("clear")){
+        sib = sib.nextElementSibling;
+      }
+      if(sib && sib.tagName === "DIV"){
+        sib.querySelectorAll("br").forEach(b => b.replaceWith("\n"));
+        sib.querySelectorAll("div.clear").forEach(c => c.remove());
+        output = sib.textContent.replace(/[ \t]+/g," ").replace(/\n /g,"\n").trim();
+      }
+    }
+
+    // References: collect CVE / CWE / external links from the "see-also" table
+    // immediately following a "References" or "See Also" details-header.
+    const refs = [];
+    container.querySelectorAll(".details-header").forEach(h => {
+      const label = (h.firstChild?.nodeValue||"").trim();
+      if(label !== "References" && label !== "See Also") return;
+      const tbl = h.nextElementSibling;
+      if(!tbl || !tbl.querySelector) return;
+      tbl.querySelectorAll("a").forEach(a => {
+        refs.push({label: textOf(a), url: a.getAttribute("href")});
+      });
+    });
+
+    const host = hostByContainerId[containerId] || "";
+    if(!plugins[pluginId]){
+      plugins[pluginId] = {
+        pluginId, name: pluginName, severity,
+        synopsis: details["Synopsis"] || "",
+        description: details["Description"] || "",
+        solution: details["Solution"] || "",
+        riskFactor: details["Risk Factor"] || "",
+        vpr: details["VPR Score"] || "",
+        epss: details["EPSS Score"] || "",
+        cvss: details["CVSS v3.0 Base Score"] || details["CVSS v2.0 Base Score"] || "",
+        pluginInfo: details["Plugin Information"] || "",
+        references: refs,
+        instances: [],
+        hosts: new Set()
+      };
+    }
+    const p = plugins[pluginId];
+    if(!p.severity || SEV_RANK[severity] < SEV_RANK[p.severity]) p.severity = severity;
+    p.instances.push({host, port, output});
+    if(host) p.hosts.add(host);
+    // upgrade refs if first occurrence had none but a later one does
+    if(refs.length && p.references.length === 0) p.references = refs;
   });
-  return { file, findings };
+
+  return Object.values(plugins).map(p => ({
+    ...p,
+    pluginUrl: `https://www.tenable.com/plugins/nessus/${p.pluginId}`,
+    hostList: Array.from(p.hosts).sort(),
+    count: p.hosts.size
+  }));
 }
 
 function animateNum(el, target, dur=1200){
@@ -329,56 +464,158 @@ function renderDonut(counts){
   }).join("");
 }
 
-function renderScans(scans){
+function renderHosts(findings){
   const colors = {Critical:"#ff3860",High:"#ff8a3d",Medium:"#f0c419",Low:"#3ec1d3",Info:"#5a8dee"};
-  document.getElementById("scans").innerHTML = scans.map(s => {
-    const total = s.findings.reduce((a,f)=>a+f.count,0);
-    const counts = {};
-    SEV_ORDER.forEach(x=>counts[x]=0);
-    s.findings.forEach(f => counts[f.severity] = (counts[f.severity]||0) + f.count);
+  // Build host -> severity counts
+  const byHost = {};
+  findings.forEach(f => {
+    f.hostList.forEach(h => {
+      if(!byHost[h]){
+        byHost[h] = {host:h, total:0};
+        SEV_ORDER.forEach(s => byHost[h][s] = 0);
+      }
+      byHost[h][f.severity]++;
+      byHost[h].total++;
+    });
+  });
+  const hosts = Object.values(byHost).sort((a,b)=>{
+    for(const s of SEV_ORDER){
+      if(b[s] !== a[s]) return b[s]-a[s];
+    }
+    return b.total - a.total;
+  }).slice(0,12);
+  const maxTotal = Math.max(1, ...hosts.map(h=>h.total));
+  document.getElementById("scans").innerHTML = hosts.map(h => {
     const stacks = SEV_ORDER.map(sev => {
-      const v = counts[sev]||0;
-      if(!v||!total) return "";
-      return `<span style="background:${colors[sev]};width:${(v/total*100).toFixed(2)}%"></span>`;
+      const v = h[sev];
+      if(!v) return "";
+      return `<span style="background:${colors[sev]};width:${(v/h.total*100).toFixed(2)}%" title="${sev}: ${v}"></span>`;
     }).join("");
-    const niceName = s.file.replace(/\.html$/,"").replace(/_[a-z0-9]+$/i,"").replace(/_/g," ");
+    const worst = SEV_ORDER.find(s => h[s] > 0) || "Info";
     return `
-      <div class="scan">
+      <div class="scan host-row" data-host="${h.host}">
         <div>
-          <div class="name">${niceName}</div>
-          <div class="meta-line">${s.findings.length} unique findings · ${total} affected hosts</div>
+          <div class="name"><span class="pill ${worst}" style="margin-right:8px">${worst}</span>${h.host}</div>
+          <div class="meta-line">${h.total} finding${h.total===1?"":"s"}${SEV_ORDER.filter(s=>h[s]).map(s=>` · ${h[s]} ${s}`).join("")}</div>
           <div class="stack">${stacks}</div>
         </div>
-        <div class="total">${total}</div>
+        <div class="total">${h.total}</div>
       </div>`;
-  }).join("");
+  }).join("") + (Object.keys(byHost).length > 12
+    ? `<div style="text-align:center;color:var(--muted);font-size:11px;letter-spacing:1px;margin-top:8px">Showing top 12 of ${Object.keys(byHost).length} hosts</div>`
+    : "");
   setTimeout(()=>{
     document.querySelectorAll(".scan .stack > span").forEach(el=>{
       const w = el.style.width; el.style.width="0"; requestAnimationFrame(()=>el.style.width=w);
     });
   },50);
+  document.querySelectorAll(".host-row").forEach(el => {
+    el.addEventListener("click", () => {
+      const h = el.dataset.host;
+      hostFilter = (hostFilter === h) ? null : h;
+      document.querySelectorAll(".host-row").forEach(r =>
+        r.classList.toggle("active", r.dataset.host === hostFilter));
+      renderFindings();
+    });
+  });
 }
 
 let allFindings = [];
 let activeFilter = "All";
+let hostFilter = null;
+let searchQuery = "";
+const expanded = new Set();
+
+function escapeHtml(s){
+  return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+function detailRow(f){
+  const refs = f.references.map(r => `<a class="plugin" href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.label)}</a>`).join(", ");
+  const instancesByHost = {};
+  f.instances.forEach(i => {
+    if(!instancesByHost[i.host]) instancesByHost[i.host] = [];
+    instancesByHost[i.host].push(i);
+  });
+  const hostBlocks = Object.entries(instancesByHost).map(([h, list]) => {
+    const lines = list.map(i => {
+      const out = i.output ? `<pre class="output">${escapeHtml(i.output)}</pre>` : "";
+      const port = i.port ? `<span class="port">${escapeHtml(i.port)}</span>` : "";
+      return `<div class="instance">${port}${out}</div>`;
+    }).join("");
+    return `<div class="host-block"><div class="host-head">${escapeHtml(h)}</div>${lines}</div>`;
+  }).join("");
+  return `
+    <tr class="detail-row"><td colspan="5"><div class="detail">
+      <div class="detail-grid">
+        <div>
+          <div class="detail-label">Synopsis</div>
+          <div class="detail-text">${escapeHtml(f.synopsis) || "<span class=muted>—</span>"}</div>
+          <div class="detail-label">Description</div>
+          <div class="detail-text">${escapeHtml(f.description) || "<span class=muted>—</span>"}</div>
+          <div class="detail-label fix">Solution</div>
+          <div class="detail-text fix">${escapeHtml(f.solution) || "<span class=muted>—</span>"}</div>
+          ${refs ? `<div class="detail-label">References</div><div class="detail-text">${refs}</div>` : ""}
+        </div>
+        <div>
+          <div class="detail-label">Risk</div>
+          <div class="metrics">
+            ${f.riskFactor ? `<div><span>Risk Factor</span><b>${escapeHtml(f.riskFactor)}</b></div>` : ""}
+            ${f.vpr ? `<div><span>VPR</span><b>${escapeHtml(f.vpr)}</b></div>` : ""}
+            ${f.epss ? `<div><span>EPSS</span><b>${escapeHtml(f.epss)}</b></div>` : ""}
+            ${f.cvss ? `<div><span>CVSS</span><b>${escapeHtml(f.cvss)}</b></div>` : ""}
+          </div>
+          <div class="detail-label">Affected Hosts (${f.hostList.length})</div>
+          <div class="hosts">${hostBlocks || "<span class=muted>—</span>"}</div>
+        </div>
+      </div>
+    </div></td></tr>`;
+}
 
 function renderFindings(){
   const tbody = document.getElementById("findings");
-  const list = activeFilter==="All" ? allFindings : allFindings.filter(f=>f.severity===activeFilter);
-  list.sort((a,b)=>{
-    const d = SEV_ORDER.indexOf(a.severity)-SEV_ORDER.indexOf(b.severity);
+  const q = searchQuery.toLowerCase();
+  const list = allFindings.filter(f => {
+    if(activeFilter !== "All" && f.severity !== activeFilter) return false;
+    if(hostFilter && !f.hostList.includes(hostFilter)) return false;
+    if(q){
+      const hay = (f.pluginId+" "+f.name+" "+f.synopsis+" "+f.description+" "+f.solution).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  }).sort((a,b)=>{
+    const d = SEV_RANK[a.severity]-SEV_RANK[b.severity];
     if(d) return d;
     return b.count - a.count;
   });
   document.getElementById("emptyMsg").style.display = list.length ? "none" : "block";
-  tbody.innerHTML = list.map(f => `
-    <tr>
-      <td><span class="pill ${f.severity}">${f.severity}</span></td>
-      <td><a class="plugin" href="${f.pluginUrl}" target="_blank" rel="noopener">${f.pluginId}</a></td>
-      <td>${f.name}</td>
-      <td style="color:var(--muted);font-size:12px">${f.source}</td>
-      <td class="num-cell">${f.count}</td>
-    </tr>`).join("");
+  const banner = hostFilter
+    ? `<tr><td colspan="5" class="filter-banner">Filtered to host <b>${escapeHtml(hostFilter)}</b> · <a href="#" id="clearHost">clear</a></td></tr>`
+    : "";
+  tbody.innerHTML = banner + list.map(f => {
+    const isOpen = expanded.has(f.pluginId);
+    const hostsLabel = f.hostList.length === 1 ? f.hostList[0] : `${f.hostList.length} hosts`;
+    const main = `
+      <tr class="finding ${isOpen?"open":""}" data-id="${f.pluginId}">
+        <td><span class="pill ${f.severity}">${f.severity}</span></td>
+        <td><a class="plugin" href="${f.pluginUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${f.pluginId}</a></td>
+        <td><div class="name-cell">${escapeHtml(f.name)}<div class="syn">${escapeHtml(f.synopsis).slice(0,140)}${f.synopsis.length>140?"…":""}</div></div></td>
+        <td style="color:var(--muted);font-size:12px">${escapeHtml(hostsLabel)}</td>
+        <td class="num-cell">${f.count}<span class="caret">${isOpen?"▾":"▸"}</span></td>
+      </tr>`;
+    return main + (isOpen ? detailRow(f) : "");
+  }).join("");
+  tbody.querySelectorAll("tr.finding").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const id = tr.dataset.id;
+      if(expanded.has(id)) expanded.delete(id); else expanded.add(id);
+      renderFindings();
+    });
+  });
+  const ch = document.getElementById("clearHost");
+  if(ch) ch.addEventListener("click", e => { e.preventDefault(); hostFilter = null;
+    document.querySelectorAll(".host-row").forEach(r => r.classList.remove("active"));
+    renderFindings(); });
 }
 
 function renderFilters(counts){
@@ -398,22 +635,33 @@ function renderFilters(counts){
 
 (async () => {
   try{
-    const scans = await Promise.all(SCAN_FILES.map(loadScan));
-    allFindings = scans.flatMap(s=>s.findings);
+    document.getElementById("scanInfo").textContent = "Loading GMI external scan…";
+    const findings = await loadDetail(DETAIL_FILE);
+    allFindings = findings;
     const counts = {};
     SEV_ORDER.forEach(s=>counts[s]=0);
-    allFindings.forEach(f => counts[f.severity] = (counts[f.severity]||0) + f.count);
+    findings.forEach(f => counts[f.severity]++);
+    const allHosts = new Set();
+    findings.forEach(f => f.hostList.forEach(h => allHosts.add(h)));
 
     document.getElementById("scanInfo").textContent =
-      `${scans.length} scans · ${allFindings.length} unique findings · ${Object.values(counts).reduce((a,b)=>a+b,0)} affected hosts`;
+      `GMI · ${allHosts.size} hosts · ${findings.length} unique findings`;
 
     renderStats(counts);
     renderDonut(counts);
-    renderScans(scans);
+    renderHosts(findings);
     renderFilters(counts);
     renderFindings();
+
+    const search = document.getElementById("search");
+    if(search){
+      search.addEventListener("input", () => {
+        searchQuery = search.value.trim();
+        renderFindings();
+      });
+    }
   }catch(e){
-    document.getElementById("scanInfo").textContent = "Failed to load scans (serve over HTTP)";
+    document.getElementById("scanInfo").textContent = "Failed to load scan (serve over HTTP)";
     console.error(e);
   }
 })();
